@@ -1,0 +1,73 @@
+name: Aktualizuj statystyki
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # co 30 minut (GitHub czasem spóźnia się kilka minut)
+  workflow_dispatch:          # przycisk "Run workflow" do ręcznego odświeżenia
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: write   # tylko do podtrzymania harmonogramu (krok "Nie usypiaj")
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Zainstaluj SFTP (tylko gdy potrzebne)
+        if: vars.FTP_PROTOCOL == 'sftp'
+        run: pip install --quiet paramiko
+
+      - name: Polskie nazwy z pamięci podręcznej
+        uses: actions/cache@v4
+        with:
+          path: data/lang_pl.json
+          key: lang-pl-${{ vars.MC_VERSION || 'latest' }}
+
+      - name: Pobierz statystyki z serwera
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_PORT: ${{ secrets.FTP_PORT }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_PROTOCOL: ${{ vars.FTP_PROTOCOL }}
+          SERVER_DIR: ${{ vars.SERVER_DIR }}
+          WORLD_NAME: ${{ vars.WORLD_NAME }}
+        run: python scripts/fetch_stats.py
+
+      - name: Zbuduj stronę
+        env:
+          HIDE_PLAYERS: ${{ vars.HIDE_PLAYERS }}
+          MC_VERSION: ${{ vars.MC_VERSION }}
+        run: python scripts/build_site.py
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      # GitHub wyłącza harmonogram po 60 dniach bez commitów. To odnawia go bez robienia commitów.
+      - name: Nie usypiaj harmonogramu
+        if: github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/statystyki.yml/enable" --silent

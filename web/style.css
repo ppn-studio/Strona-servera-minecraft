@@ -1,0 +1,71 @@
+:root{
+  --bg:#17191d;--panel:#22252b;--panel2:#2a2e35;--line:#363b44;
+  --text:#e8e6e1;--muted:#9aa0a8;--accent:#6fbf4a;--accent2:#3e8e2a;
+  --gold:#f2c14e;--silver:#c9d1d9;--bronze:#d08a4f;
+}
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background-image:linear-gradient(180deg,#1f2a1c 0,var(--bg) 260px)}
+a{color:inherit}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  max-width:1100px;margin:0 auto;padding:18px 20px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.brand img{image-rendering:pixelated;border-radius:6px;box-shadow:0 0 0 2px #0006}
+.brand strong{display:block;font-size:22px;letter-spacing:.5px}
+.brand small{color:var(--muted)}
+nav{display:flex;gap:6px}
+nav a{text-decoration:none;padding:8px 14px;border-radius:8px;color:var(--muted);font-weight:600}
+nav a:hover{background:var(--panel)}
+nav a.on{background:var(--accent2);color:#fff}
+main{max-width:1100px;margin:0 auto;padding:0 20px 30px}
+footer{max-width:1100px;margin:0 auto;padding:10px 20px 30px;color:var(--muted);font-size:13px}
+.loading,.empty{color:var(--muted);padding:40px 0;text-align:center}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:6px 0 22px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.tile b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.tile span{color:var(--muted);font-size:13px}
+.tile em{font-style:normal;font-size:12px;color:var(--accent);margin-left:6px}
+
+h2{font-size:17px;margin:26px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 14px 8px}
+.card h3{margin:0 0 8px;font-size:15px;display:flex;gap:8px;align-items:center}
+.card h3 .ico{font-size:18px}
+.row{display:flex;align-items:center;gap:10px;padding:6px 4px;border-top:1px solid var(--line);text-decoration:none}
+.row:first-of-type{border-top:0}
+a.row:hover{background:var(--panel2);border-radius:6px}
+.pos{width:22px;text-align:right;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+.p1 .pos{color:var(--gold)}.p2 .pos{color:var(--silver)}.p3 .pos{color:var(--bronze)}
+.av{width:26px;height:26px;border-radius:4px;image-rendering:pixelated;flex:none}
+.nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.val{font-variant-numeric:tabular-nums;font-weight:600}
+.more{background:none;border:0;color:var(--accent);cursor:pointer;padding:8px 4px;font:inherit;font-size:13px}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px}
+input,select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font:inherit}
+input{flex:1;min-width:200px}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{padding:9px 12px;text-align:left;border-top:1px solid var(--line)}
+th{color:var(--muted);font-weight:600;font-size:13px;border-top:0;background:var(--panel2)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--panel2)}
+.who{display:flex;align-items:center;gap:10px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px}
+.dot.on{background:var(--accent)}
+
+.profile{display:flex;align-items:center;gap:18px;margin:10px 0 18px}
+.profile canvas{width:84px;height:84px;border-radius:10px;image-rendering:pixelated;box-shadow:0 0 0 3px #0006}
+.profile h1{margin:0;font-size:28px}
+.profile p{margin:2px 0 0;color:var(--muted)}
+.back{display:inline-block;margin:4px 0;color:var(--muted);text-decoration:none}
+.back:hover{color:var(--text)}
+.bars .row{gap:12px}
+.bar{flex:1;min-width:0}
+.bar i{display:block;height:5px;border-radius:3px;background:var(--accent2);margin-top:3px}
+@media (max-width:560px){.hide-sm{display:none}.brand strong{font-size:19px}}
+.val,.tile b,td.n{white-space:nowrap}
+@media (max-width:560px){main{padding:0 12px 24px}th,td{padding:8px 7px;font-size:14px}.av{width:22px;height:22px}.who{gap:7px}}
