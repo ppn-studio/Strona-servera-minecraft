@@ -9,7 +9,7 @@ Nic innego z serwera nie jest czytane ani publikowane.
 Ustawienia (zmienne środowiskowe, w GitHubie jako Secrets / Variables):
   FTP_HOST, FTP_USER, FTP_PASSWORD   wymagane
   FTP_PORT       domyślnie 21 (ftp/ftps) albo 22 (sftp)
-  FTP_PROTOCOL   ftp | ftps | sftp   (domyślnie ftp)
+  FTP_PROTOCOL   ftp | ftps | sftp   (domyślnie sftp, Craftserve ma tylko SFTP)
   SERVER_DIR     folder serwera na FTP (domyślnie /)
   WORLD_NAME     nazwa folderu świata (domyślnie world)
 
@@ -118,7 +118,7 @@ def parse_mdtm(s):
 
 
 def main():
-    proto = env("FTP_PROTOCOL", "ftp").lower()
+    proto = env("FTP_PROTOCOL", "sftp").lower()
     host = env("FTP_HOST", required=True)
     user = env("FTP_USER", required=True)
     password = env("FTP_PASSWORD", required=True)
@@ -127,7 +127,11 @@ def main():
     world = env("WORLD_NAME", "world")
 
     if proto == "sftp":
-        client = SftpClient(host, port, user, password)
+        try:
+            client = SftpClient(host, port, user, password)
+        except Exception as e:
+            sys.exit(f"Nie mogę połączyć się przez SFTP ({type(e).__name__}: {e}). "
+                     "Sprawdź FTP_PORT, FTP_USER i FTP_PASSWORD z zakładki Pliki w panelu Craftserve.")
     elif proto in ("ftp", "ftps"):
         client = FtpClient(host, port, user, password, tls=(proto == "ftps"))
     else:

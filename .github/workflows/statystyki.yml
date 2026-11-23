@@ -30,8 +30,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Zainstaluj SFTP (tylko gdy potrzebne)
-        if: vars.FTP_PROTOCOL == 'sftp'
+      - name: Zainstaluj SFTP
+        if: vars.FTP_PROTOCOL == '' || vars.FTP_PROTOCOL == 'sftp'
         run: pip install --quiet paramiko
 
       - name: Polskie nazwy z pamięci podręcznej
@@ -46,7 +46,7 @@ jobs:
           FTP_PORT: ${{ secrets.FTP_PORT }}
           FTP_USER: ${{ secrets.FTP_USER }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_PROTOCOL: ${{ vars.FTP_PROTOCOL }}
+          FTP_PROTOCOL: ${{ vars.FTP_PROTOCOL || 'sftp' }}   # Craftserve ma tylko SFTP
           SERVER_DIR: ${{ vars.SERVER_DIR }}
           WORLD_NAME: ${{ vars.WORLD_NAME }}
         run: python scripts/fetch_stats.py
