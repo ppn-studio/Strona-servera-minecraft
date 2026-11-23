@@ -122,7 +122,13 @@ def main():
     host = env("FTP_HOST", required=True)
     user = env("FTP_USER", required=True)
     password = env("FTP_PASSWORD", required=True)
-    port = int(env("FTP_PORT", "22" if proto == "sftp" else "21"))
+    # dopuszczamy wklejenie adresu w formie sftp://host:port albo user@host
+    host = host.split("://", 1)[-1].split("@")[-1].strip("/")
+    port_env = env("FTP_PORT")
+    if ":" in host:
+        host, _, hp = host.partition(":")
+        port_env = port_env or hp
+    port = int(port_env or ("22" if proto == "sftp" else "21"))
     server_dir = env("SERVER_DIR", "/")
     world = env("WORLD_NAME", "world")
 
