@@ -2,7 +2,7 @@ name: Aktualizuj statystyki
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # co 30 minut (GitHub czasem spóźnia się kilka minut)
+    - cron: "*/5 * * * *"    # co 5 minut (najczęściej jak pozwala GitHub; bywa opóźnienie)
   workflow_dispatch:          # przycisk "Run workflow" do ręcznego odświeżenia
   push:
     branches: [main]

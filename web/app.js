@@ -194,6 +194,6 @@ fetch("data.json", {cache: "no-store"}).then(r => r.json()).then(d => {
   DATA = d;
   const upd = new Date(d.generated);
   document.getElementById("updated").textContent =
-    `Zaktualizowano ${upd.toLocaleString("pl-PL", {dateStyle: "long", timeStyle: "short"})}. Statystyki odświeżają się co około 30 minut.`;
+    `Zaktualizowano ${upd.toLocaleString("pl-PL", {dateStyle: "long", timeStyle: "short"})}. Statystyki odświeżają się co kilka minut.`;
   route();
 }).catch(() => app.innerHTML = '<p class="empty">Nie udało się wczytać statystyk. Spróbuj odświeżyć stronę.</p>');
