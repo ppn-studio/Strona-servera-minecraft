@@ -118,9 +118,27 @@ class SftpClient:
         self.t.close()
 
 
-def detect_world(client, server_dir):
-    """Szuka folderu świata: level-name z server.properties, potem 'world', potem dowolny folder z podfolderem stats."""
-    candidates = []
+def find_stats(client, base, depth=3):
+    """Szuka podfolderu 'stats' (w MC 26.x może być np. w players/stats)."""
+    try:
+        dirs = client.list_dirs(base)
+    except Exception:
+        return None, []
+    if "stats" in dirs:
+        return posixpath.join(base, "stats"), dirs
+    if depth > 1:
+        for d in dirs:
+            if d.startswith(".") or d in ("region", "entities", "poi", "data", "datapacks", "DIM-1", "DIM1", "dimensions"):
+                continue
+            found, _ = find_stats(client, posixpath.join(base, d), depth - 1)
+            if found:
+                return found, dirs
+    return None, dirs
+
+
+def detect_stats_dir(client, server_dir, world):
+    """Folder ze statystykami: level-name z server.properties (albo WORLD_NAME), potem 'world', potem reszta."""
+    candidates = [world] if world else []
     try:
         props = client.read(posixpath.join(server_dir, "server.properties")).decode("utf-8", "replace")
         for line in props.splitlines():  # czytamy tylko level-name, reszta pliku jest od razu odrzucana
@@ -131,19 +149,20 @@ def detect_world(client, server_dir):
         pass
     candidates.append("world")
     try:
-        dirs = client.list_dirs(server_dir)
+        top = client.list_dirs(server_dir)
     except Exception:
-        dirs = []
-    candidates += [d for d in dirs if d not in candidates]
-    for c in candidates:
-        try:
-            if "stats" in client.list_dirs(posixpath.join(server_dir, c)):
-                print(f"Folder świata: {c}")
-                return c
-        except Exception:
-            continue
-    sys.exit("Nie znalazłem folderu świata ze statystykami. Foldery na serwerze: "
-             + (", ".join(sorted(dirs)) or "(brak)") + ". Ustaw SERVER_DIR albo WORLD_NAME.")
+        top = []
+    candidates += [d for d in top if d not in candidates and not d.startswith(".")
+                   and d not in ("config", "defaultconfigs", "libraries", "logs", "mods", "versions")]
+    seen_inside = {}
+    for c in dict.fromkeys(candidates):
+        found, inside = find_stats(client, posixpath.join(server_dir, c))
+        seen_inside[c] = inside
+        if found:
+            print(f"Statystyki w: {posixpath.relpath(found, server_dir)}")
+            return found
+    hint = "; ".join(f"{k}: {', '.join(sorted(v)) or '(pusto)'}" for k, v in seen_inside.items())
+    sys.exit(f"Nie znalazłem folderu stats. Zawartość folderów: {hint}")
 
 
 def parse_mdtm(s):
@@ -183,15 +202,13 @@ def main():
     print(f"Połączono ({proto}).")
 
     try:
-        if not world:
-            world = detect_world(client, server_dir)
-        stats_dir = posixpath.join(server_dir, world, "stats")
+        stats_dir = detect_stats_dir(client, server_dir, world)
         try:
             files = client.list_json(stats_dir)
         except Exception as e:
-            sys.exit(f"Nie mogę otworzyć folderu {world}/stats ({type(e).__name__}). Sprawdź SERVER_DIR i WORLD_NAME.")
+            sys.exit(f"Nie mogę otworzyć folderu {stats_dir} ({type(e).__name__}). Sprawdź SERVER_DIR i WORLD_NAME.")
         if not files:
-            sys.exit(f"Folder {world}/stats jest pusty albo to zły folder. Sprawdź SERVER_DIR i WORLD_NAME.")
+            sys.exit(f"Folder {stats_dir} jest pusty albo to zły folder. Sprawdź SERVER_DIR i WORLD_NAME.")
         mtimes = {}
         for name, mtime in files:
             save(posixpath.join("stats", name), client.read(posixpath.join(stats_dir, name)))
