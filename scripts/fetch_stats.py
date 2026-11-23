@@ -11,7 +11,7 @@ Ustawienia (zmienne środowiskowe, w GitHubie jako Secrets / Variables):
   FTP_PORT       domyślnie 21 (ftp/ftps) albo 22 (sftp)
   FTP_PROTOCOL   ftp | ftps | sftp   (domyślnie sftp, Craftserve ma tylko SFTP)
   SERVER_DIR     folder serwera na FTP (domyślnie /)
-  WORLD_NAME     nazwa folderu świata (domyślnie world)
+  WORLD_NAME     nazwa folderu świata (domyślnie wykrywana sama)
 
 Skrypt celowo nie wypisuje adresu serwera ani loginu, bo logi GitHub Actions są publiczne.
 """
@@ -73,6 +73,12 @@ class FtpClient:
                 out.append((name, mtime))
         return out
 
+    def list_dirs(self, path):
+        try:
+            return [n for n, f in self.ftp.mlsd(path, facts=["type"]) if f.get("type") == "dir"]
+        except Exception:
+            return [posixpath.basename(n) for n in self.ftp.nlst(path)]
+
     def read(self, path):
         buf = io.BytesIO()
         self.ftp.retrbinary("RETR " + path, buf.write)
@@ -99,6 +105,10 @@ class SftpClient:
             if a.filename.endswith(".json")
         ]
 
+    def list_dirs(self, path):
+        import stat
+        return [a.filename for a in self.sftp.listdir_attr(path) if stat.S_ISDIR(a.st_mode or 0)]
+
     def read(self, path):
         with self.sftp.open(path, "rb") as f:
             return f.read()
@@ -106,6 +116,34 @@ class SftpClient:
     def close(self):
         self.sftp.close()
         self.t.close()
+
+
+def detect_world(client, server_dir):
+    """Szuka folderu świata: level-name z server.properties, potem 'world', potem dowolny folder z podfolderem stats."""
+    candidates = []
+    try:
+        props = client.read(posixpath.join(server_dir, "server.properties")).decode("utf-8", "replace")
+        for line in props.splitlines():  # czytamy tylko level-name, reszta pliku jest od razu odrzucana
+            if line.startswith("level-name="):
+                candidates.append(line.split("=", 1)[1].strip())
+        del props
+    except Exception:
+        pass
+    candidates.append("world")
+    try:
+        dirs = client.list_dirs(server_dir)
+    except Exception:
+        dirs = []
+    candidates += [d for d in dirs if d not in candidates]
+    for c in candidates:
+        try:
+            if "stats" in client.list_dirs(posixpath.join(server_dir, c)):
+                print(f"Folder świata: {c}")
+                return c
+        except Exception:
+            continue
+    sys.exit("Nie znalazłem folderu świata ze statystykami. Foldery na serwerze: "
+             + (", ".join(sorted(dirs)) or "(brak)") + ". Ustaw SERVER_DIR albo WORLD_NAME.")
 
 
 def parse_mdtm(s):
@@ -130,7 +168,7 @@ def main():
         port_env = port_env or hp
     port = int(port_env or ("22" if proto == "sftp" else "21"))
     server_dir = env("SERVER_DIR", "/")
-    world = env("WORLD_NAME", "world")
+    world = env("WORLD_NAME")
 
     if proto == "sftp":
         try:
@@ -145,6 +183,8 @@ def main():
     print(f"Połączono ({proto}).")
 
     try:
+        if not world:
+            world = detect_world(client, server_dir)
         stats_dir = posixpath.join(server_dir, world, "stats")
         try:
             files = client.list_json(stats_dir)
