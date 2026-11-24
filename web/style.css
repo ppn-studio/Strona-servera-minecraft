@@ -69,3 +69,8 @@ tbody tr:hover{background:var(--panel2)}
 @media (max-width:560px){.hide-sm{display:none}.brand strong{font-size:19px}}
 .val,.tile b,td.n{white-space:nowrap}
 @media (max-width:560px){main{padding:0 12px 24px}th,td{padding:8px 7px;font-size:14px}.av{width:22px;height:22px}.who{gap:7px}}
+.bdg{display:inline-flex;align-items:flex-start;margin-left:5px;font-size:13px;line-height:1;vertical-align:middle;cursor:default}
+.bdg b{font-weight:700}
+.bdg sup{font-size:10px;font-weight:700;margin-left:1px}
+.bdgs{margin-left:6px}.bdgs .bdg{font-size:20px}.bdgs .bdg sup{font-size:13px}
+.badges .card{padding-top:12px}

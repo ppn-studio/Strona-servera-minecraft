@@ -41,8 +41,18 @@ const LISTS = [
 ];
 
 let DATA = null;
+let BADGES = {};  // nick -> [{symbol, color, place, cat, display}]
+const sym = s => esc(s) + "\uFE0E";  // wymusza znak tekstowy (kolor), nie emoji
+const SUP = {1: "¹", 2: "²", 3: "³"};
+const PLACE_COLOR = {1: "#FFD700", 2: "#C0C0C0", 3: "#CD7F32"};
+const PLACE_NAME = {1: "1. miejsce", 2: "2. miejsce", 3: "3. miejsce"};
 const app = document.getElementById("app");
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+function badges(name) {
+  return (BADGES[name] || []).map(b =>
+    `<span class="bdg" title="${esc(b.cat)}: ${PLACE_NAME[b.place] || b.place} (${esc(b.display)})">` +
+    `<b style="color:${b.color}">${sym(b.symbol)}</b><sup style="color:${PLACE_COLOR[b.place] || "inherit"}">${SUP[b.place] || ""}</sup></span>`).join("");
+}
 const link = name => "#/gracz/" + encodeURIComponent(name);
 
 // Pikselowy awatar z nicku (bez wysyłania czegokolwiek do zewnętrznych stron).
@@ -90,8 +100,23 @@ function rows(list, st, limit) {
   return list.slice(0, limit).map((p, i) => `
     <a class="row p${i + 1}" href="${link(p.name)}">
       <span class="pos">${i + 1}</span>${avImg(p.name)}
-      <span class="nm">${esc(p.name)}</span><span class="val">${st.f(p.totals[st.k])}</span>
+      <span class="nm">${esc(p.name)}${badges(p.name)}</span><span class="val">${st.f(p.totals[st.k])}</span>
     </a>`).join("");
+}
+
+function badgeSection() {
+  const cats = (DATA.badges || []).filter(c => c.top && c.top.length);
+  if (!cats.length) return "";
+  const known = new Set(DATA.players.map(p => p.name));
+  return `<h2>Odznaki</h2><div class="grid badges">${cats.map(c => `
+    <section class="card" style="border-top:3px solid ${c.color}">
+      <h3><span class="ico" style="color:${c.color}">${sym(c.symbol)}</span>${esc(c.name)}</h3>
+      ${c.top.map(t => {
+        const inner = `<span class="pos" style="color:${PLACE_COLOR[t.place] || "inherit"}">${t.place}</span>${avImg(t.name)}
+          <span class="nm">${esc(t.name)}</span><span class="val">${esc(t.display)}</span>`;
+        return known.has(t.name) ? `<a class="row" href="${link(t.name)}">${inner}</a>` : `<div class="row">${inner}</div>`;
+      }).join("")}
+    </section>`).join("")}</div>`;
 }
 
 function viewRankings() {
@@ -115,6 +140,8 @@ function viewRankings() {
   }).join("");
   app.innerHTML = `
     <div class="tiles">${tiles.map(([t, v]) => `<div class="tile"><b>${v}</b><span>${t}</span></div>`).join("")}</div>
+    ${badgeSection()}
+    <h2>Rankingi</h2>
     <div class="grid">${cards || '<p class="empty">Brak statystyk.</p>'}</div>`;
   app.querySelectorAll(".more").forEach(btn => btn.onclick = () => {
     const card = btn.closest(".card"), st = STATS.find(s => s.k === card.dataset.k);
@@ -143,7 +170,7 @@ function viewPlayers() {
       b.totals[s] - a.totals[s]);
     document.getElementById("tb").innerHTML = list.map(p => `
       <tr data-n="${esc(p.name)}">
-        <td><span class="who">${avImg(p.name)}${esc(p.name)}</span></td>
+        <td><span class="who">${avImg(p.name)}<span>${esc(p.name)}${badges(p.name)}</span></span></td>
         <td class="n">${time(p.totals.play_time)}</td>
         <td class="n hide-sm">${fmt(p.totals.mined)}</td>
         <td class="n hide-sm">${fmt(p.totals.deaths)}</td>
@@ -171,7 +198,7 @@ function viewPlayer(name) {
   }).join("");
   app.innerHTML = `
     <a class="back" href="#/gracze">← Wszyscy gracze</a>
-    <div class="profile"><span id="pav"></span><div><h1>${esc(p.name)}</h1>
+    <div class="profile"><span id="pav"></span><div><h1>${esc(p.name)}<span class="bdgs">${badges(p.name)}</span></h1>
       <p><span class="dot${recent(p.last_seen) ? " on" : ""}"></span>Ostatnio na serwerze: ${ago(p.last_seen)}</p></div></div>
     <div class="tiles">${tiles}</div>
     <div class="grid">${lists}</div>`;
@@ -192,6 +219,9 @@ function route() {
 window.addEventListener("hashchange", route);
 fetch("data.json", {cache: "no-store"}).then(r => r.json()).then(d => {
   DATA = d;
+  for (const c of d.badges || []) for (const t of c.top || [])
+    (BADGES[t.name] ||= []).push({symbol: c.symbol, color: c.color, place: t.place, cat: c.name, display: t.display});
+  for (const k in BADGES) BADGES[k].sort((a, b) => a.place - b.place);
   const upd = new Date(d.generated);
   document.getElementById("updated").textContent =
     `Zaktualizowano ${upd.toLocaleString("pl-PL", {dateStyle: "long", timeStyle: "short"})}. Statystyki odświeżają się co kilka minut.`;

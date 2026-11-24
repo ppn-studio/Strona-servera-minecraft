@@ -6,6 +6,7 @@ Opcjonalne zmienne środowiskowe:
   MC_VERSION    wersja Minecrafta do polskich nazw bloków i mobów (domyślnie najnowsza)
 """
 import json
+import re
 import os
 import shutil
 import sys
@@ -102,6 +103,28 @@ def top(d, n, namer, kind):
     return [[namer(k, kind), v] for k, v in items]
 
 
+def safe_color(c):
+    c = str(c or "")
+    return c if re.fullmatch(r"#[0-9A-Fa-f]{3,8}", c) else "#F5D90A"
+
+
+def load_badges(hidden):
+    """Odznaki TOP 3 z moda (badges.json). Bez UUID, tylko nicki. Brak pliku = pusta lista."""
+    raw = load_json(os.path.join(RAW, "badges.json"), None)
+    if not isinstance(raw, dict):
+        return []
+    out = []
+    for c in raw.get("categories", []) or []:
+        try:
+            top = [{"place": int(t["place"]), "name": str(t["name"]), "display": str(t.get("display", t.get("value", "")))}
+                   for t in c.get("top", []) if str(t.get("name", "")).lower() not in hidden][:3]
+            out.append({"id": str(c["id"]), "name": str(c.get("name", c["id"])), "symbol": str(c.get("symbol", "★"))[:2],
+                        "color": safe_color(c.get("color")), "top": top})
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out
+
+
 def main():
     stats_dir = os.path.join(RAW, "stats")
     if not os.path.isdir(stats_dir):
@@ -172,7 +195,8 @@ def main():
             },
         })
 
-    data = {"generated": datetime.now(timezone.utc).isoformat(timespec="seconds"), "players": players}
+    data = {"generated": datetime.now(timezone.utc).isoformat(timespec="seconds"), "players": players,
+            "badges": load_badges(hidden)}
 
     if os.path.isdir(OUT):
         shutil.rmtree(OUT)

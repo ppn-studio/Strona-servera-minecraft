@@ -216,6 +216,19 @@ def main():
         save("mtimes.json", json.dumps(mtimes).encode())
         print(f"Pobrano statystyki {len(files)} graczy.")
 
+        # odznaki z moda Cwellandia Core (opcjonalne): <świat>/chestlock/badges.json
+        got_badges = False
+        for base in (posixpath.dirname(stats_dir), posixpath.dirname(posixpath.dirname(stats_dir))):
+            try:
+                save("badges.json", client.read(posixpath.join(base, "chestlock", "badges.json")))
+                print("Pobrano odznaki.")
+                got_badges = True
+                break
+            except Exception:
+                continue
+        if not got_badges:
+            print("Brak pliku odznak (mod go jeszcze nie zapisał), strona bez odznak.")
+
         try:
             save("usercache.json", client.read(posixpath.join(server_dir, "usercache.json")))
             print("Pobrano usercache.json (nicki).")
